@@ -9,15 +9,14 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 //Configuracion de keyvaults
+SecretClient secretClient = builder.Services.BuildServiceProvider().GetService<SecretClient>();
+KeyVaultSecret secretConnectionString =
+    await secretClient.GetSecretAsync("SqlAzure");
 builder.Services.AddAzureClients(factory =>
 {
     factory.AddSecretClient
     (builder.Configuration.GetSection("KeyVault"));
 });
-SecretClient secretClient =
-builder.Services.BuildServiceProvider().GetService<SecretClient>();
-KeyVaultSecret secretConnectionString =
-    await secretClient.GetSecretAsync("SqlAzure");
 
 //config DB connection
 string connectionString = secretConnectionString.Value;
