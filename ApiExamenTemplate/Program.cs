@@ -5,6 +5,8 @@ using Azure.Security.KeyVault.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
 using Microsoft.OpenApi.Models;
+using NSwag;
+using NSwag.Generation.Processors.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +30,7 @@ builder.Services.AddDbContext<DoctoresContext>(options => options.UseSqlServer(c
 
 //Inyeccion del helper
 HelperActionServicesOAuth helper = new HelperActionServicesOAuth(builder.Configuration);
-builder.Services.AddSingleton<HelperActionServicesOAuth>(helper);
+builder.Services.AddTransient<HelperActionServicesOAuth>(x=>helper);
 
 
 //Configuracion del JWT
@@ -38,19 +40,21 @@ builder.Services.AddAuthentication
 
 
 //CONFIG SWAGGER
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddOpenApiDocument(document =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Version = "v1",
-        Title = "Api Cristopher Jmnz",
-        Description = "Api",
-        Contact = new OpenApiContact
+    document.Title = "Api CUBOS";
+    document.Description = "Api CUBOS";
+    document.AddSecurity("JWT", Enumerable.Empty<string>(),
+        new NSwag.OpenApiSecurityScheme
         {
-            Name = "Cristopher Jimenez",
-            Email = "crisjimenez19@gmail.com"
+            Type = OpenApiSecuritySchemeType.ApiKey,
+            Name = "Authorization",
+            In = OpenApiSecurityApiKeyLocation.Header,
+            Description = "Copia y pega el Token en el campo 'Value:' así: Bearer {Token JWT}."
         }
-    });
+    );
+    document.OperationProcessors.Add(
+    new AspNetCoreOperationSecurityScopeProcessor("JWT"));
 });
 var app = builder.Build();
 
