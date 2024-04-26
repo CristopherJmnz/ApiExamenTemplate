@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Azure.Security.KeyVault.Secrets;
+using Azure.Identity;
 
 namespace ApiExamenTemplate.Helpers
 {
@@ -14,26 +15,42 @@ namespace ApiExamenTemplate.Helpers
 
 
 
-        public HelperActionServicesOAuth(IServiceCollection services)
-        {
-            Task.Run(async () =>
-            {
-                SecretClient secretClient =
-                    services.BuildServiceProvider().GetService<SecretClient>();
-                KeyVaultSecret secretIssuer =
-                    await secretClient.GetSecretAsync("Issuer");
-                KeyVaultSecret secretAudience =
-                    await secretClient.GetSecretAsync("Audience");
-                KeyVaultSecret secretSecretKey =
-                    await secretClient.GetSecretAsync("SecretKey");
-                this.Issuer =
-                    secretIssuer.Value;
-                this.Audience =
-                    secretAudience.Value;
-                this.SecretKey =
-                    secretSecretKey.Value;
-            });
+        public HelperActionServicesOAuth(IConfiguration configuration)
 
+        {
+            var keyVaultUri = configuration.GetSection("KeyVault:VaultUri").Value;
+            var secretClient = new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
+
+            //this.Issuer =
+
+            //    configuration.GetValue<string>("ApiOAuth:Issuer");
+
+            //this.Audience =
+
+            //    configuration.GetValue<string>("ApiOAuth:Audience");
+
+            //this.SecretKey =
+
+            //    configuration.GetValue<string>("ApiOAuth:SecretKey");
+
+            Issuer = GetSecretValue(secretClient, "Issuer");
+            Audience = GetSecretValue(secretClient, "Audience");
+            SecretKey = GetSecretValue(secretClient, "SecretKey");
+
+        }
+
+        private string GetSecretValue(SecretClient secretClient, string secretName)
+        {
+            try
+            {
+                KeyVaultSecret secret = secretClient.GetSecret(secretName);
+                return secret.Value;
+            }
+            catch (Exception ex)
+            {
+                // Maneja la excepción según sea necesario
+                throw new Exception($"No se pudo obtener el secreto '{secretName}' del Key Vault.", ex);
+            }
         }
 
         //NECESITAMOS UN METODO PARA GENERAR EL TOKEN 
